@@ -1,0 +1,19 @@
+[Unit]
+Description=meteor-auto scheduler for METEOR-M LRPT (SatDump)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/env meteor-auto --config /etc/meteor-auto/config.yaml --lookahead 24 --min-elev 20
+WorkingDirectory=/var/lib/meteor-auto
+Restart=on-failure
+RestartSec=5s
+
+# Optional: specify user/group
+# User=meteor
+# Group=meteor
+
+[Install]
+WantedBy=multi-user.target

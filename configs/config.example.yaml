@@ -1,0 +1,30 @@
+# meteor-auto example configuration
+
+qth:
+  lat: 4.7110
+  lon: -74.0721
+  alt: 2640  # meters
+
+lookahead: 24   # hours
+min_elev: 20.0  # degrees
+
+frequencies:
+  primary: 137900000
+  backup: 137100000
+
+pipelines:
+  primary: meteor_m2-x_lrpt
+  fallback: meteor_m2-x_lrpt_80k
+
+satdump:
+  path: satdump
+  gain: 40
+  bias: false
+  samplerate: 1024000
+  agc: false
+  # http_bind: 0.0.0.0:8080
+
+paths:
+  outputs: outputs
+  logs: logs
+  cache: .cache

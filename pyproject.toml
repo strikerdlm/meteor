@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meteor-auto"
+version = "0.1.0"
+description = "Headless automation to predict METEOR-M passes and run SatDump"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "FAC"}]
+keywords = ["satellites", "LRPT", "METEOR-M", "SatDump", "automation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "skyfield>=1.49",
+    "APScheduler>=3.10",
+    "PyYAML>=6.0.2",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.1",
+    "rich>=13.7.1"
+]
+
+[project.scripts]
+meteor-auto = "meteor_auto.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["meteor_auto*"]
