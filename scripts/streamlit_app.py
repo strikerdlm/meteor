@@ -290,6 +290,34 @@ with tab_pass:
         selection_mode="single",
         default="Dipole 137 MHz",
     )
+    with st.popover(
+        ":material/ruler: Dipole length helper",
+        use_container_width=True,
+    ):
+        st.caption("Quarter-wave V-dipole leg length (velocity factor 0.95)")
+        freq_mhz = st.number_input(
+            "Frequency (MHz)",
+            value=137.900 if antenna == "Dipole 137 MHz" else 137.100,
+            min_value=100.0,
+            max_value=300.0,
+            step=0.1,
+        )
+        c = 299_792_458.0  # m/s
+        leg_m = 0.25 * c / (freq_mhz * 1e6) * 0.95
+        leg_cm = leg_m * 100.0
+        leg_in = leg_m * 39.3701
+        st.metric(
+            "Leg length (each)",
+            f"{leg_cm:.1f} cm",
+            help=f"{leg_in:.2f} in",
+        )
+        st.markdown(
+            """
+            - Cut two legs to the shown length and form a V at ~120°–135°.
+            - Mount outdoors with clear sky view. Keep coax away from elements.
+            - HRPT needs an L-band dish/helix; dipole is for 137 MHz LRPT/APT.
+            """
+        )
     # Map antenna to bands and recommended min elevation
     ant_to_band = {
         "Dipole 137 MHz": "lrpt",
