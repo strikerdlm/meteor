@@ -280,11 +280,36 @@ with tab_cfg:
 
 with tab_pass:
     st.subheader(":material/auto_awesome_motion: Pass prediction")
+    antenna = st.segmented_control(
+        "Antenna profile",
+        options=[
+            "Dipole 137 MHz",
+            "L-band HRPT (dish)",
+            "Custom",
+        ],
+        selection_mode="single",
+        default="Dipole 137 MHz",
+    )
+    # Map antenna to bands and recommended min elevation
+    ant_to_band = {
+        "Dipole 137 MHz": "lrpt",
+        "L-band HRPT (dish)": "hrpt",
+    }
+    ant_to_min = {
+        "Dipole 137 MHz": 15.0,
+        "L-band HRPT (dish)": 25.0,
+    }
+    # Target set control (disabled when derived from antenna)
     band_choice = st.segmented_control(
         "Target set",
         options=["LRPT", "HRPT", "All"],
         selection_mode="single",
-        default="LRPT",
+        default=(
+            "LRPT" if ant_to_band.get(antenna) == "lrpt"
+            else "HRPT" if ant_to_band.get(antenna) == "hrpt"
+            else "LRPT"
+        ),
+        disabled=(antenna != "Custom"),
     )
     hours_override = st.number_input(
         "Hours (override)",
@@ -292,9 +317,11 @@ with tab_pass:
         min_value=1,
         max_value=168,
     )
+    # Recommend higher min elevation for HRPT dish
+    rec_min = ant_to_min.get(antenna, float(cfg.min_elevation_deg))
     min_elev_override = st.number_input(
         "Min elevation (deg)",
-        value=cfg.min_elevation_deg,
+        value=max(cfg.min_elevation_deg, rec_min),
         min_value=0.0,
         max_value=90.0,
     )
@@ -316,7 +343,11 @@ with tab_pass:
             triples = parse_tles(text)
             st.write("Selecting targets...")
             bands_map = {"LRPT": "lrpt", "HRPT": "hrpt", "All": "all"}
-            bands = bands_map[band_choice or "LRPT"]
+            # Derive from antenna unless Custom
+            if antenna != "Custom":
+                bands = ant_to_band.get(antenna, "lrpt")
+            else:
+                bands = bands_map[band_choice or "LRPT"]
             targets = select_targets(triples, bands=bands)
             if not targets:
                 st.warning("No matching targets found in TLE set.")
