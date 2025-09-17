@@ -22,7 +22,11 @@ import streamlit as st
 
 from meteor_auto.config import Config, load_config
 from meteor_auto.predict import ObserverQTH, find_passes
-from meteor_auto.tle import fetch_tles, parse_tles, select_meteor_targets
+from meteor_auto.tle import (
+    fetch_tles,
+    parse_tles,
+    select_targets,
+)
 from meteor_auto.scheduler import PassScheduler
 from meteor_auto.utils import ensure_dir, setup_logging, load_dotenv_if_present
 
@@ -276,6 +280,12 @@ with tab_cfg:
 
 with tab_pass:
     st.subheader(":material/auto_awesome_motion: Pass prediction")
+    band_choice = st.segmented_control(
+        "Target set",
+        options=["LRPT", "HRPT", "All"],
+        selection_mode="single",
+        default="LRPT",
+    )
     hours_override = st.number_input(
         "Hours (override)",
         value=cfg.lookahead_hours,
@@ -304,10 +314,12 @@ with tab_pass:
             text = fetch_tles(cache_dir)
             st.write("Parsing TLEs...")
             triples = parse_tles(text)
-            st.write("Selecting METEOR targets...")
-            targets = select_meteor_targets(triples)
+            st.write("Selecting targets...")
+            bands_map = {"LRPT": "lrpt", "HRPT": "hrpt", "All": "all"}
+            bands = bands_map[band_choice or "LRPT"]
+            targets = select_targets(triples, bands=bands)
             if not targets:
-                st.warning("No METEOR targets found in TLE set.")
+                st.warning("No matching targets found in TLE set.")
                 status.update(
                     label="Done",
                     state="complete",
