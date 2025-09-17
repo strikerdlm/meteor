@@ -1,0 +1,5 @@
+2025-09-17T17:01:50Z [INFO] meteor_auto.tle: Fetching TLEs from https://celestrak.org/NORAD/elements/weather.txt (attempt 1)
+2025-09-17T17:01:50Z [DEBUG] urllib3.connectionpool: Starting new HTTPS connection (1): celestrak.org:443
+2025-09-17T17:01:51Z [DEBUG] urllib3.connectionpool: https://celestrak.org:443 "GET /NORAD/elements/weather.txt HTTP/1.1" 301 254
+2025-09-17T17:01:51Z [DEBUG] urllib3.connectionpool: https://celestrak.org:443 "GET /redirect.php?target=NORAD/elements/gp.php?GROUP=weather&FORMAT=tle&oldURL=/NORAD/elements/weather.txt HTTP/1.1" 301 0
+2025-09-17T17:01:51Z [DEBUG] urllib3.connectionpool: https://celestrak.org:443 "GET /NORAD/elements/gp.php?GROUP=weather&amp;FORMAT=tle HTTP/1.1" 200 11424
