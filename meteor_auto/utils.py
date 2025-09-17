@@ -53,8 +53,18 @@ def load_yaml_lazy(path: str | Path) -> Optional[dict[str, Any]]:
 	p = Path(path)
 	if not p.exists():
 		return None
-	with p.open("r", encoding="utf-8") as f:
-		return yaml.safe_load(f)  # type: ignore[no-any-return]
+	# Read and normalize leading tabs to spaces for YAML compliance
+	text = p.read_text(encoding="utf-8")
+	lines: list[str] = []
+	for line in text.splitlines():
+		j = 0
+		while j < len(line) and line[j] == "\t":
+			j += 1
+		if j:
+			line = ("  " * j) + line[j:]
+		lines.append(line)
+	normalized = "\n".join(lines)
+	return yaml.safe_load(normalized)  # type: ignore[no-any-return]
 
 
 def load_dotenv_if_present(env_path: Optional[str | Path] = None) -> None:
