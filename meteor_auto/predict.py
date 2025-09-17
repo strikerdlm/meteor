@@ -27,11 +27,16 @@ class PassEvent:
 def _to_ts(ts, dt: datetime):
 	if dt.tzinfo is None:
 		dt = dt.replace(tzinfo=timezone.utc)
-	return ts.utc(dt)
+	# Use Skyfield's from_datetime to avoid arg-shape ambiguity in ts.utc
+	return ts.from_datetime(dt)
 
 
 def _elevation_deg(sat: EarthSatellite, qth: ObserverQTH, ts, t):
-	observer = wgs84.latlon(qth.latitude_deg, qth.longitude_deg, elevation_m=qth.altitude_m)
+	observer = wgs84.latlon(
+		qth.latitude_deg,
+		qth.longitude_deg,
+		elevation_m=qth.altitude_m,
+	)
 	topocentric = (sat - observer).at(t)
 	_, el, _ = topocentric.altaz()
 	return float(el.degrees)
@@ -45,13 +50,13 @@ def find_passes(
 	step_seconds: int = 10,
 ) -> List[PassEvent]:
 	"""
-	Simple brute-force pass prediction by sampling elevations every step_seconds.
-	Sufficient for scheduling within seconds accuracy when using generous margins.
+	Predict passes by sampling elevations every ``step_seconds``.
+	Accurate enough for scheduling when using generous margins.
 	"""
 	ts = load.timescale()
 	start = datetime.now(timezone.utc)
 	end = start + timedelta(hours=lookahead_hours)
-	
+
 	passes: List[PassEvent] = []
 
 	for sat_name, (l1, l2) in sat_name_to_tle.items():
@@ -76,7 +81,11 @@ def find_passes(
 				if elev < 0.0:
 					# End of pass
 					los_dt = t
-					if peak_el >= min_elev_deg and aos_dt is not None and peak_time is not None:
+					if (
+						peak_el >= min_elev_deg
+						and aos_dt is not None
+						and peak_time is not None
+					):
 						passes.append(
 							PassEvent(
 								satellite_name=sat_name,

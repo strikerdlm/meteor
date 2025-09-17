@@ -5,7 +5,7 @@ from typing import Optional
 
 from . import __version__
 from .config import Config, load_config
-from .utils import ensure_dir, setup_logging
+from .utils import ensure_dir, setup_logging, load_dotenv_if_present
 from .tle import fetch_tles, parse_tles, select_meteor_targets
 from .predict import find_passes, ObserverQTH
 from .scheduler import PassScheduler
@@ -19,12 +19,25 @@ def build_parser() -> argparse.ArgumentParser:
 		),
 	)
 	parser.add_argument(
+		"--env",
+		type=str,
+		help="Path to a .env file to load (optional)",
+	)
+	parser.add_argument(
 		"--config",
 		type=str,
 		help="Path to config YAML/JSON file",
 	)
-	parser.add_argument("--lookahead", type=int, help="Lookahead window in hours")
-	parser.add_argument("--min-elev", type=float, help="Minimum elevation in degrees")
+	parser.add_argument(
+		"--lookahead",
+		type=int,
+		help="Lookahead window in hours",
+	)
+	parser.add_argument(
+		"--min-elev",
+		type=float,
+		help="Minimum elevation in degrees",
+	)
 	parser.add_argument(
 		"--version",
 		action="store_true",
@@ -36,7 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
 	list_parser = subparsers.add_parser(
 		"list-passes", help="List predicted passes"
 	)
-	list_parser.add_argument("--hours", type=int, help="Override lookahead in hours")
+	list_parser.add_argument(
+		"--hours",
+		type=int,
+		help="Override lookahead in hours",
+	)
 
 	run_parser = subparsers.add_parser(
 		"run", help="Run scheduler to capture passes (scheduling WIP)"
@@ -79,8 +96,11 @@ def _list_passes(cfg: Config, hours_override: Optional[int]) -> int:
 		return 0
 	for p in passes:
 		print(
-			f"{p.satellite_name}: AOS {p.aos.isoformat()}  TCA {p.tca.isoformat()}  "
-			f"LOS {p.los.isoformat()}  max_el {p.max_elevation_deg:.1f}°  dur {p.duration_sec}s"
+			f"{p.satellite_name}: AOS {p.aos.isoformat()}  "
+			f"TCA {p.tca.isoformat()}  "
+			f"LOS {p.los.isoformat()}  "
+			f"max_el {p.max_elevation_deg:.1f}°  "
+			f"dur {p.duration_sec}s"
 		)
 	return 0
 
@@ -117,6 +137,12 @@ def main(argv: Optional[list[str]] = None) -> int:
 	if args.version:
 		print(__version__)
 		return 0
+
+	# Load dotenv first so env overrides can apply to config
+	if getattr(args, "env", None):
+		load_dotenv_if_present(args.env)
+	else:
+		load_dotenv_if_present()
 
 	cfg = load_config(args.config)
 	cfg = _apply_cli_overrides(cfg, args)

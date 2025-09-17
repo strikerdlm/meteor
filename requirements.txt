@@ -1,0 +1,7 @@
+# Runtime dependencies
+skyfield>=1.49
+APScheduler>=3.10
+PyYAML>=6.0.2
+requests>=2.31.0
+python-dotenv>=1.0.1
+rich>=13.7.1
