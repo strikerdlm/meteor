@@ -154,5 +154,23 @@ Show help:
 python -m meteor_auto.cli --help
 ```
 
+## Streamlit UI (optional)
+Local dashboard for configuration, pass prediction, dry-run scheduling, and log viewing.
+
+Install (already included in `requirements.txt`):
+```bash
+pip install -r requirements.txt
+```
+
+Run the UI:
+```bash
+streamlit run scripts/streamlit_app.py
+```
+
+Notes:
+- Keep the headless scheduler running separately for reliability (e.g., `meteor-auto run`).
+- The UI reads/writes `configs/config.yaml` and respects env overrides (you can load a `.env`).
+- Use the UI for planning/monitoring; captures are still executed by the backend.
+
 ## License
 MIT

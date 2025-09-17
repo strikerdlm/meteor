@@ -5,3 +5,4 @@ PyYAML>=6.0.2
 requests>=2.31.0
 python-dotenv>=1.0.1
 rich>=13.7.1
+streamlit>=1.37.0
