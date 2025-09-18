@@ -14,7 +14,7 @@ It does NOT replace the headless scheduler. Keep running
 from __future__ import annotations
 
 import logging
-from datetime import timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -99,6 +99,63 @@ def tail_text_file(path: Path, max_bytes: int = 20000) -> str:
         return data.decode("utf-8", errors="replace")
     except Exception:
         return data.decode("latin-1", errors="replace")
+
+
+# ---------- Time & presentation helpers ----------
+
+def utc_to_local(dt: datetime, utc_offset_hours: int) -> datetime:
+    """Convert an aware UTC datetime to a fixed-offset local time.
+
+    Parameters
+    - dt: timezone-aware datetime to convert. Must include tzinfo.
+    - utc_offset_hours: Local timezone offset in hours relative to UTC
+      (e.g., -5 for UTC−05:00). Valid range is [-12, 14].
+
+    Returns
+    - datetime in the requested fixed-offset timezone.
+
+    Raises
+    - ValueError: if dt is naive or offset is out of range.
+    """
+    if dt.tzinfo is None:
+        raise ValueError("dt must be timezone-aware (tzinfo is required)")
+    if not (-12 <= int(utc_offset_hours) <= 14):
+        raise ValueError("utc_offset_hours must be between -12 and +14")
+    target_tz = timezone(timedelta(hours=int(utc_offset_hours)))
+    return dt.astimezone(target_tz)
+
+
+def format_time_for_display(
+    dt: datetime, show_local: bool, utc_offset_hours: int
+) -> str:
+    """Return an ISO 8601 string without microseconds in UTC or local time.
+
+    This is optimized for human readability in the UI; it keeps seconds
+    precision and includes the timezone offset when shown in local time.
+    """
+    if show_local:
+        base = utc_to_local(dt, utc_offset_hours)
+    else:
+        base = dt.astimezone(timezone.utc)
+    return base.replace(microsecond=0).isoformat()
+
+
+def classify_pass_quality(max_el_deg: float) -> str:
+    """Classify pass quality from maximum elevation in degrees.
+
+    Rules (heuristic):
+    - ≥ 60°: Excellent — strongest signals, nearly overhead
+    - 40–59°: Good — reliable reception
+    - 25–39°: Fair — may be OK with good setup
+    - < 25°: Low — challenging; likely noisy
+    """
+    if max_el_deg >= 60.0:
+        return "🟢 Excellent"
+    if max_el_deg >= 40.0:
+        return "🟩 Good"
+    if max_el_deg >= 25.0:
+        return "🟨 Fair"
+    return "🟠 Low"
 
 
 # ---------- UI ----------
@@ -354,6 +411,27 @@ with tab_pass:
         max_value=90.0,
     )
 
+    st.divider()
+    tz_col1, tz_col2 = st.columns([2, 2])
+    with tz_col1:
+        show_local_time = st.toggle(
+            "Show times in local time",
+            value=True,
+            help=(
+                "Convert from UTC to a fixed local offset.\n"
+                "DST is not applied automatically."
+            ),
+        )
+    with tz_col2:
+        local_utc_offset = st.number_input(
+            "Local UTC offset (hours)",
+            value=-5,
+            min_value=-12,
+            max_value=14,
+            step=1,
+            help="Example: -5 for Eastern Standard Time (EST).",
+        )
+
     if st.button(
         "Find passes",
         icon=":material/satellite_alt:",
@@ -398,31 +476,90 @@ with tab_pass:
                     int(hours_override),
                     float(min_elev_override),
                 )
-                st.write(
-                    f"Passes found: {len(passes)} (min_el={float(min_elev_override)}, hours={int(hours_override)})"
+                msg = (
+                    f"Passes found: {len(passes)} "
+                    f"(min_el={float(min_elev_override)}, "
+                    f"hours={int(hours_override)})"
                 )
+                st.write(msg)
                 if not passes:
                     st.info("No passes within lookahead window.")
                 else:
                     rows: List[Dict[str, Any]] = []
                     for p in passes:
-                        rows.append(
-                            {
-                                "satellite": p.satellite_name,
-                                "aos": p.aos.astimezone(
-                                    timezone.utc
-                                ).isoformat(),
-                                "tca": p.tca.astimezone(
-                                    timezone.utc
-                                ).isoformat(),
-                                "los": p.los.astimezone(
-                                    timezone.utc
-                                ).isoformat(),
-                                "max_el_deg": round(p.max_elevation_deg, 1),
-                                "duration_s": p.duration_sec,
-                            }
+                        rows.append({
+                            "satellite": p.satellite_name,
+                            "aos": format_time_for_display(
+                                p.aos, show_local_time, int(local_utc_offset)
+                            ),
+                            "tca": format_time_for_display(
+                                p.tca, show_local_time, int(local_utc_offset)
+                            ),
+                            "los": format_time_for_display(
+                                p.los, show_local_time, int(local_utc_offset)
+                            ),
+                            "max_el_deg": round(p.max_elevation_deg, 1),
+                            "quality": classify_pass_quality(
+                                p.max_elevation_deg
+                            ),
+                            "duration_s": p.duration_sec,
+                        })
+
+                    if not show_local_time:
+                        tz_label = "UTC"
+                    else:
+                        tz_label = f"UTC{int(local_utc_offset):+d}"
+                    with st.popover(
+                        ":material/help: What do these columns mean?",
+                        use_container_width=True,
+                    ):
+                        st.markdown(
+                            f"""
+                            - **AOS**: start time when the satellite rises
+                              above your horizon ({tz_label}).
+                            - **TCA**: midpoint of the pass at the highest
+                              elevation ({tz_label}).
+                            - **LOS**: end time when the satellite sets
+                              below the horizon ({tz_label}).
+                            - **Max elevation (°)**: highest elevation;
+                              higher is usually stronger.
+                            - **Quality**: quick rule-of-thumb from
+                              max elevation.
+                            - **Duration (s)**: total time above horizon.
+                            """
                         )
-                    st.dataframe(rows, use_container_width=True)
+
+                    st.dataframe(
+                        rows,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "satellite": st.column_config.TextColumn(
+                                "Satellite",
+                                help="Spacecraft name",
+                            ),
+                            "aos": st.column_config.TextColumn(
+                                f"AOS start ({tz_label})",
+                            ),
+                            "tca": st.column_config.TextColumn(
+                                f"TCA peak ({tz_label})",
+                            ),
+                            "los": st.column_config.TextColumn(
+                                f"LOS end ({tz_label})",
+                            ),
+                            "max_el_deg": st.column_config.NumberColumn(
+                                "Max elevation (°)",
+                                format="%.1f",
+                            ),
+                            "quality": st.column_config.TextColumn(
+                                "Quality",
+                            ),
+                            "duration_s": st.column_config.NumberColumn(
+                                "Duration (s)",
+                                format="%d",
+                            ),
+                        },
+                    )
 
                     if st.button(
                         "Dry-run schedule these passes",
