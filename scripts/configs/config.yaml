@@ -1,0 +1,23 @@
+qth:
+  lat: 4.711
+  lon: -74.0721
+  alt: 2640.0
+lookahead: 168
+min_elev: 30.0
+frequencies:
+  primary: 137900000.0
+  backup: 137100000.0
+pipelines:
+  primary: meteor_m2-x_lrpt
+  fallback: meteor_m2-x_lrpt_80k
+satdump:
+  path: satdump
+  gain: 40.0
+  bias: false
+  samplerate: 1024000
+  agc: false
+  http_bind: ''
+paths:
+  outputs: outputs
+  logs: logs
+  cache: .cache

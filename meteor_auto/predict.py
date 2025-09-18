@@ -38,8 +38,8 @@ def _elevation_deg(sat: EarthSatellite, qth: ObserverQTH, ts, t):
 		elevation_m=qth.altitude_m,
 	)
 	topocentric = (sat - observer).at(t)
-	_, el, _ = topocentric.altaz()
-	return float(el.degrees)
+	alt, _, _ = topocentric.altaz()
+	return float(alt.degrees)
 
 
 def find_passes(
