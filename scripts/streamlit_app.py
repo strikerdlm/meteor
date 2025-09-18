@@ -377,6 +377,7 @@ with tab_pass:
             else:
                 bands = bands_map[band_choice or "LRPT"]
             targets = select_targets(triples, bands=bands)
+            st.write(f"Targets selected: {len(targets)} (bands='{bands}')")
             if not targets:
                 st.warning("No matching targets found in TLE set.")
                 status.update(
@@ -396,6 +397,9 @@ with tab_pass:
                     qth,
                     int(hours_override),
                     float(min_elev_override),
+                )
+                st.write(
+                    f"Passes found: {len(passes)} (min_el={float(min_elev_override)}, hours={int(hours_override)})"
                 )
                 if not passes:
                     st.info("No passes within lookahead window.")
